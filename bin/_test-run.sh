@@ -26,7 +26,7 @@ init_test_run() {
 
   check_linkerd_binary
   check_if_k8s_reachable
-  remove_l5d_if_exists
+  check_if_l5d_exists
 }
 
 # These 3 functions are the primary entrypoints into running integration tests.
@@ -136,16 +136,15 @@ check_if_k8s_reachable(){
     printf '[ok]\n'
 }
 
-remove_l5d_if_exists() {
-  resources=$(kubectl --context=$k8s_context get all,clusterrole,clusterrolebinding,mutatingwebhookconfigurations,validatingwebhookconfigurations,psp,crd -l linkerd.io/control-plane-ns --all-namespaces -oname)
-  if [ ! -z "$resources" ]; then
-    printf 'Removing existing l5d installation...'
-    cleanup
+check_if_l5d_exists() {
+    printf 'Checking if Linkerd resources exist on cluster...'
+    resources=$(kubectl --context=$k8s_context get all,clusterrole,clusterrolebinding,mutatingwebhookconfigurations,validatingwebhookconfigurations,psp,crd -l linkerd.io/control-plane-ns --all-namespaces -oname)
+    if [ ! -z "$resources" ]; then
+        printf '\nLinkerd resources exist on cluster\n'
+        printf "Run [%s/test-cleanup] or specify a cluster context\n" "$bindir"
+        exit 1
+    fi
     printf '[ok]\n'
-  fi
-
-  # Cleanup Helm, in case it's there (if not, we ignore the error)
-  helm_cleanup &> /dev/null || true
 }
 
 cleanup() {
